@@ -1,0 +1,43 @@
+name: Deploy ARM API Documentation
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy-arm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+      - name: Install and Build (cache miss) 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm install --ignore-scripts && \
+          npx lerna bootstrap --no-ci --hoist --nohoist='zone.js' && \
+          npm run compile'
+      - name: Install and Build (cache hit) 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm ci --ignore-scripts && \
+          npx lerna bootstrap --hoist --nohoist='zone.js' && \
+          npm run compile'
+      - name: Build Docs
+        run:  |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm run docs'
