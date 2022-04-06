@@ -1,0 +1,47 @@
+name: Ensure API ARM Peer Dependency
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  peer-api-check:
+    runs-on: ubuntu-latest
+    container:
+      image: node:14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+      - name: Install lerna
+        run:  |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl && \
+          npm install -g lerna'
+      - name: Install semver 
+        run:  |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl && \
+          npm install semver'
+
+      - name: Check API dependency semantics (stable)
+        working-directory: packages
+        run:   |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl && \
+          lerna exec --ignore propagation-validation-server --ignore propagation-validation-server --ignore @opentelemetry/selenium-tests "node ../../scripts/peer-api-check.js"'
+
+      - name: Check API dependency semantics (experimental)
+        working-directory: experimental
+        run:    |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl && \
+          lerna exec --ignore propagation-validation-server --ignore @opentelemetry/selenium-tests --ignore @opentelemetry/api-metrics-wip --ignore @opentelemetry/otlp-transformer "node ../../../scripts/peer-api-check.js"'
