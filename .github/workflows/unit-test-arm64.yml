@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
       - name: Bootstrap
         run: |
           docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
@@ -55,3 +58,57 @@ jobs:
           sudo apt-get install -y nodejs && \
           uname -m && \
           npm run codecov'
+          
+  node-tests-experimental:
+    strategy:
+      fail-fast: false
+      matrix:
+        node_version: ["8", "10", "12", "14", "16"]
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_UNSAFE_PERM: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2 
+      - name: Bootstrap
+        working-directory: experimental
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm install --ignore-scripts && \
+          npx lerna bootstrap --no-ci --hoist --nohoist='zone.js''
+      - name: Build 🔧
+        working-directory: experimental
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run compile'
+      - name: Unit tests
+        working-directory: experimental
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run test'
+      - name: Report Coverage
+        working-directory: experimental
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run codecov'
+        if: ${{ matrix.node_version == '14' }}
