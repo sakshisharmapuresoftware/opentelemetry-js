@@ -17,7 +17,7 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
           arm64v8/ubuntu:latest \
-          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
           curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
           sudo apt-get install -y nodejs && \
           npm install --ignore-scripts && \
@@ -27,7 +27,7 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
           arm64v8/ubuntu:latest \
-          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
           curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
           sudo apt-get install -y nodejs && \
           npm ci --ignore-scripts && \
@@ -37,7 +37,7 @@ jobs:
         run:  |
           docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
           arm64v8/ubuntu:latest \
-          bash -exc 'apt-get update && apt-get -y install curl wget sudo && \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
           curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
           sudo apt-get install -y nodejs && \
           npm run docs'
