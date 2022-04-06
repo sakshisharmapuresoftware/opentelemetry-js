@@ -1,0 +1,63 @@
+name: W3C Trace Context Integration Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+      - name: Install and Bootstrap (cache miss) 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm install --ignore-scripts && \
+          npx lerna bootstrap --no-ci --hoist --scope=propagation-validation-server --include-dependencies'
+      - name: Install and Bootstrap (cache hit) 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm ci --ignore-scripts && \
+          npx lerna bootstrap --hoist --scope=propagation-validation-server --include-dependencies'
+      - name: Generate version.ts files
+        run:  |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          lerna run version'
+
+      - name: Build 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          npm run compile'
+        working-directory: ./integration-tests/propagation-validation-server
+
+      - name: Run W3C Test harness
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          ./integration-tests/tracecontext-integration-test.sh'
+      
