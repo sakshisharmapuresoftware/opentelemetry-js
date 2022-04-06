@@ -1,0 +1,57 @@
+name: Unit Tests ARM
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  node-tests-stable:
+    strategy:
+      fail-fast: false
+      matrix:
+        node_version: ["8", "10", "12", "14", "16"]
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_UNSAFE_PERM: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Bootstrap
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm install --ignore-scripts && \
+          npx lerna bootstrap --no-ci --hoist --nohoist='zone.js' --ignore @opentelemetry/selenium-tests'
+      - name: Build 🔧
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run compile'
+      - name: Unit tests
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run test'
+      - name: Report Coverage
+        if: ${{ matrix.node_version == '14' }}
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ws:rw --workdir=/ws \
+          arm64v8/ubuntu:latest \
+          bash -exc 'apt-get update && apt-get -y install curl wget sudo git && \
+          curl -fsSL https://deb.nodesource.com/setup_${{ matrix.node_version }}.x | sudo -E bash - && \
+          sudo apt-get install -y nodejs && \
+          uname -m && \
+          npm run codecov'
