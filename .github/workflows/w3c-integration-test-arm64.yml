@@ -1,4 +1,4 @@
-name: W3C Trace Context Integration Test
+name: W3C ARM Trace Context Integration Test
 
 on:
   push:
